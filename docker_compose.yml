@@ -1,0 +1,116 @@
+version: '2.2'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    hostname: zookeeper1
+    container_name: zookeeper1
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka
+    hostname: kafka1
+    container_name: kafka1
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # For more details see See https://rmoff.net/2018/08/02/kafka-listeners-explained/
+      KAFKA_LISTENERS: LISTENER_BOB://kafka:29092,LISTENER_FRED://kafka:9092,LISTENER_ALICE://kafka:29094
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka:29092,LISTENER_FRED://localhost:9092,LISTENER_ALICE://never-gonna-give-you-up:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT,LISTENER_FRED:PLAINTEXT,LISTENER_ALICE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB
+      ####################################
+      #KAFKA_ADVERTISED_LISTENERS: EXTERNAL://kafka:29092, EXTERNAL://localhost:9092
+      #KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:SSL,INTERNAL:PLAINTEXT
+      #####################################################""
+      #KAFKA_BROKER_ID: 1
+      #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      #KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  elasticsearch :
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+    container_name: elasticsearch1
+    #restart : always
+    environment: 
+     # - xpack.security.enable=false
+      - discovery.type=single-node
+      #- bootstrap.memory_lock=true
+      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data01:/usr/share/elasticsearch/data
+    ports:
+        - 9200:9200  
+        - 9300:9300
+    networks:
+      - elastic   
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.7
+    container_name: kibana1   
+    #restart: always    
+    environment: 
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports :
+      - 5601:5601
+    networks:
+      - elastic      
+    #depends_on:
+     # - elasticsearch   
+
+  spark:
+    image: docker.io/bitnami/spark:3
+    container_name: spark
+    hostname: spark
+    user: root
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - '8080:8080'
+    #volumes:
+      # - ./jars_dir:/opt/bitnami/spark/ivy:z
+      # - ../streamingProje:/home
+      # - /opt/spark/conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+      # - /opt/spark/jars:/opt/bitnami/spark/ivy:z
+
+  nifi:
+    container_name: nifi1
+    image: 'apache/nifi:1.18.0'
+    ports:
+      - 9443:9443
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=ctsBtRBKHRAx69EqUghvvgEvjnaLjFEB
+      - NIFI_WEB_HTTPS_PORT=9443
+    volumes:
+      - nifi_content_repository:/opt/nifi/nifi-current/content_repository
+      - nifi_database_repository:/opt/nifi/nifi-current/database_repositordocker compose up -d
+      - nifi_conf:/opt/nifi/nifi-current/conf    
+ 
+networks:
+  elastic:
+    driver: bridge 
+  default:
+    name: nifi
+    external: true
+
+volumes:
+  data01:
+    driver: local
+  nifi_content_repository:
+  nifi_database_repository:
+  nifi_flowfile_repository:
+  nifi_provenance_repository:
+  nifi_logs:
+  nifi_state:
+  nifi_conf:              
+  

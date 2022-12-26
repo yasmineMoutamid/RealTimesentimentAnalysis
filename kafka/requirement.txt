@@ -1,0 +1,8 @@
+pip install kafka-python
+pip install tweepy
+
+//////////////NOTEBOOK ///////////////////////
+!pip install findspark
+pip install spark-nlp
+pip install elasticsearch
+pip install kafka-python
